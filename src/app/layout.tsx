@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,6 +27,11 @@ export default function RootLayout({
         <link
           href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,800,900&display=swap"
           rel="stylesheet"
+        />
+        {/* Travelpayouts verification script */}
+        <Script
+          src="https://emrldco.com/NDkwNTU3.js?t=490557"
+          strategy="beforeInteractive"
         />
       </head>
       <body className="antialiased min-h-screen">
