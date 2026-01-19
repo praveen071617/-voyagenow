@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -27,8 +28,12 @@ export default function RootLayout({
           href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,800,900&display=swap"
           rel="stylesheet"
         />
+      </head>
+      <body className="antialiased min-h-screen">
         {/* Travelpayouts verification script */}
-        <script
+        <Script
+          id="travelpayouts-verify"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function () {
               var script = document.createElement("script");
@@ -38,8 +43,6 @@ export default function RootLayout({
             })();`
           }}
         />
-      </head>
-      <body className="antialiased min-h-screen">
         {children}
       </body>
     </html>
