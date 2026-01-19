@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,9 +28,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
         {/* Travelpayouts verification script */}
-        <Script
+        <script
+          async
           src="https://emrldco.com/NDkwNTU3.js?t=490557"
-          strategy="beforeInteractive"
         />
       </head>
       <body className="antialiased min-h-screen">
