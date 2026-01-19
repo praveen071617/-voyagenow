@@ -29,8 +29,14 @@ export default function RootLayout({
         />
         {/* Travelpayouts verification script */}
         <script
-          async
-          src="https://emrldco.com/NDkwNTU3.js?t=490557"
+          dangerouslySetInnerHTML={{
+            __html: `(function () {
+              var script = document.createElement("script");
+              script.async = 1;
+              script.src = 'https://emrldco.com/NDkwNTU3.js?t=490557';
+              document.head.appendChild(script);
+            })();`
+          }}
         />
       </head>
       <body className="antialiased min-h-screen">
