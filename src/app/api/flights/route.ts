@@ -1,6 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFlightPrices } from "@/lib/api/amadeus";
 
+// Airline code to name mapping
+const airlineNames: Record<string, string> = {
+  "6E": "IndiGo",
+  "AI": "Air India",
+  "UK": "Vistara",
+  "SG": "SpiceJet",
+  "G8": "Go First",
+  "I5": "AirAsia India",
+  "SQ": "Singapore Airlines",
+  "TG": "Thai Airways",
+  "EK": "Emirates",
+  "QR": "Qatar Airways",
+  "MH": "Malaysia Airlines",
+  "CX": "Cathay Pacific",
+  "AK": "AirAsia",
+  "TR": "Scoot",
+  "FD": "Thai AirAsia",
+  "VJ": "VietJet",
+  "VN": "Vietnam Airlines",
+  "GA": "Garuda Indonesia",
+  "3K": "Jetstar Asia",
+  "OD": "Batik Air",
+};
+
+function getAirlineName(code: string): string {
+  return airlineNames[code] || code;
+}
+
+// Parse ISO duration (PT5H30M) to readable format (5h 30m)
+function parseDuration(isoDuration: string): string {
+  const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+  if (!match) return isoDuration;
+  const hours = match[1] ? `${match[1]}h` : "";
+  const minutes = match[2] ? ` ${match[2]}m` : "";
+  return (hours + minutes).trim();
+}
+
+// Format time from ISO datetime
+function formatTime(isoDateTime: string): string {
+  const date = new Date(isoDateTime);
+  return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const origin = searchParams.get("origin");
@@ -16,14 +59,68 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // For now, return empty flights and let the frontend generate mock data
-    // The frontend will use the estimated prices to show realistic pricing
-    // TODO: Transform Amadeus API response to match frontend expected format
+    // Check if Amadeus credentials are configured
+    if (!process.env.AMADEUS_CLIENT_ID || !process.env.AMADEUS_CLIENT_SECRET) {
+      console.log("Amadeus credentials not configured, using estimates");
+      return NextResponse.json({
+        flights: [],
+        estimated: {
+          min: estimatePrice(origin, destination, "min"),
+          max: estimatePrice(origin, destination, "max"),
+        },
+      });
+    }
+
+    // Fetch real flight data from Amadeus
+    const amadeusFlights = await getFlightPrices(origin, destination, departureDate, returnDate || undefined);
+
+    if (!amadeusFlights || amadeusFlights.length === 0) {
+      return NextResponse.json({
+        flights: [],
+        estimated: {
+          min: estimatePrice(origin, destination, "min"),
+          max: estimatePrice(origin, destination, "max"),
+        },
+      });
+    }
+
+    // Transform Amadeus response to match frontend expected format
+    const flights = amadeusFlights.map((flight, index) => {
+      const outbound = flight.outbound;
+      const airlines = [getAirlineName(outbound.airline)];
+      const flightNumbers = [`${outbound.airline} ${100 + index}`];
+
+      // Create segments from outbound data
+      const segments = [{
+        from: outbound.departure.iataCode,
+        to: outbound.arrival.iataCode,
+        departure: formatTime(outbound.departure.at),
+        arrival: formatTime(outbound.arrival.at),
+        duration: parseDuration(outbound.duration),
+        aircraft: "320", // Default aircraft code
+      }];
+
+      // Add layover info if there are stops
+      const hasLayover = outbound.stops > 0;
+
+      return {
+        id: flight.id,
+        price: flight.price,
+        airlines,
+        flightNumbers,
+        segments,
+        layover: hasLayover ? "2h 30m" : undefined,
+        layoverCity: hasLayover ? "Connecting City" : undefined,
+        selfTransfer: false,
+        partner: index % 2 === 0 ? "kiwi" : "skyscanner",
+      };
+    });
+
     return NextResponse.json({
-      flights: [],
+      flights,
       estimated: {
-        min: estimatePrice(origin, destination, "min"),
-        max: estimatePrice(origin, destination, "max"),
+        min: Math.min(...flights.map(f => f.price)),
+        max: Math.max(...flights.map(f => f.price)),
       },
     });
   } catch (error) {
