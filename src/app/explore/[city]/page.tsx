@@ -2,7 +2,9 @@
 
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
+import { addDays } from "date-fns";
 import { Slider } from "@/components/ui/slider";
+import { DatePicker } from "@/components/ui/date-picker";
 import { AnimatedBackground } from "@/components/shared/AnimatedBackground";
 import { Navbar } from "@/components/shared/Navbar";
 import { Footer } from "@/components/shared/Footer";
@@ -23,10 +25,20 @@ export default function CityPage() {
   const citySlug = params.city as string;
 
   const [departureCity, setDepartureCity] = useState("BOM");
+  const [tripType, setTripType] = useState<"return" | "oneway">("return");
   const [days, setDays] = useState([7]);
+  const [departDate, setDepartDate] = useState<Date | undefined>(addDays(new Date(), 14));
+  const [returnDate, setReturnDate] = useState<Date | undefined>(addDays(new Date(), 21));
   const [destination, setDestination] = useState<Destination | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Update return date when depart date or days change
+  useEffect(() => {
+    if (departDate && tripType === "return") {
+      setReturnDate(addDays(departDate, days[0]));
+    }
+  }, [departDate, days, tripType]);
 
   useEffect(() => {
     async function fetchDestination() {
@@ -97,22 +109,70 @@ export default function CityPage() {
           <TripHeader destination={destination} />
 
           {/* Trip Config */}
-          <div className="glass-card p-4 mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <label className="text-white/70 text-sm whitespace-nowrap">
-                  From:
-                </label>
+          <div className="glass-card p-5 mb-8">
+            {/* Trip Type Toggle */}
+            <div className="flex items-center gap-2 mb-5">
+              <button
+                onClick={() => setTripType("return")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  tripType === "return"
+                    ? "bg-purple-500 text-white"
+                    : "bg-white/[0.06] text-white/70 hover:bg-white/[0.1]"
+                }`}
+              >
+                Round Trip
+              </button>
+              <button
+                onClick={() => setTripType("oneway")}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  tripType === "oneway"
+                    ? "bg-purple-500 text-white"
+                    : "bg-white/[0.06] text-white/70 hover:bg-white/[0.1]"
+                }`}
+              >
+                One Way
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Departure City */}
+              <div>
+                <label className="text-white/70 text-sm mb-2 block">From</label>
                 <DepartureCitySelect
                   value={departureCity}
                   onChange={setDepartureCity}
-                  className="flex-1 min-w-[200px]"
+                  className="w-full"
                 />
               </div>
 
-              <div className="flex items-center gap-4 flex-1">
-                <label className="text-white/70 text-sm whitespace-nowrap">
-                  Duration: {days[0]} days
+              {/* Departure Date */}
+              <div>
+                <label className="text-white/70 text-sm mb-2 block">Departure</label>
+                <DatePicker
+                  date={departDate}
+                  onDateChange={setDepartDate}
+                  placeholder="Select date"
+                  minDate={new Date()}
+                />
+              </div>
+
+              {/* Return Date - only show for round trip */}
+              {tripType === "return" && (
+                <div>
+                  <label className="text-white/70 text-sm mb-2 block">Return</label>
+                  <DatePicker
+                    date={returnDate}
+                    onDateChange={setReturnDate}
+                    placeholder="Select date"
+                    minDate={departDate || new Date()}
+                  />
+                </div>
+              )}
+
+              {/* Duration */}
+              <div>
+                <label className="text-white/70 text-sm mb-2 block">
+                  Trip Duration: {days[0]} days
                 </label>
                 <Slider
                   value={days}
@@ -120,7 +180,7 @@ export default function CityPage() {
                   min={3}
                   max={14}
                   step={1}
-                  className="w-32 sm:w-40"
+                  className="mt-3"
                 />
               </div>
             </div>
@@ -132,6 +192,9 @@ export default function CityPage() {
               destination={destination}
               departureCity={departureCity}
               days={days[0]}
+              departDate={departDate}
+              returnDate={tripType === "return" ? returnDate : undefined}
+              tripType={tripType}
             />
             <HotelsSection destination={destination} days={days[0]} />
             <EsimSection destination={destination} />

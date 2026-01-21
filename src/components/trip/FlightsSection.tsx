@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { format } from "date-fns";
 import { Plane, Search, ExternalLink } from "lucide-react";
 import { GlassCard } from "@/components/shared/GlassCard";
 import { GlowButton } from "@/components/shared/GlowButton";
@@ -28,16 +29,29 @@ interface FlightsSectionProps {
   destination: Destination;
   departureCity: string;
   days: number;
+  departDate?: Date;
+  returnDate?: Date;
+  tripType?: "return" | "oneway";
 }
 
 export function FlightsSection({
   destination,
   departureCity,
   days,
+  departDate: departDateProp,
+  returnDate: returnDateProp,
+  tripType = "return",
 }: FlightsSectionProps) {
   const flightCost = estimatedFlights[departureCity] || estimatedFlights.BOM;
-  const departDate = getDateString(14);
-  const returnDate = getDateString(14 + days);
+  const isOneWay = tripType === "oneway";
+
+  // Use provided dates or fallback to auto-generated dates
+  const departDate = departDateProp
+    ? format(departDateProp, "yyyy-MM-dd")
+    : getDateString(14);
+  const returnDate = !isOneWay && returnDateProp
+    ? format(returnDateProp, "yyyy-MM-dd")
+    : !isOneWay ? getDateString(14 + days) : "";
 
   return (
     <motion.div
@@ -53,7 +67,9 @@ export function FlightsSection({
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">Flights</h3>
-              <p className="text-white/50 text-sm">Round trip estimate</p>
+              <p className="text-white/50 text-sm">
+                {isOneWay ? "One way" : "Round trip"} estimate
+              </p>
             </div>
           </div>
           <p className="text-xl font-bold gradient-text">

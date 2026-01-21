@@ -41,7 +41,9 @@ function parseDuration(isoDuration: string): string {
 // Format time from ISO datetime
 function formatTime(isoDateTime: string): string {
   const date = new Date(isoDateTime);
-  return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 export async function GET(request: NextRequest) {
@@ -71,10 +73,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    console.log(`[Amadeus] Searching flights: ${origin} -> ${destination}, ${departureDate}`);
+
     // Fetch real flight data from Amadeus
     const amadeusFlights = await getFlightPrices(origin, destination, departureDate, returnDate || undefined);
 
+    console.log(`[Amadeus] Result: ${amadeusFlights ? amadeusFlights.length : 0} flights found`);
+
     if (!amadeusFlights || amadeusFlights.length === 0) {
+      console.log("[Amadeus] No flights returned, using estimates");
       return NextResponse.json({
         flights: [],
         estimated: {
